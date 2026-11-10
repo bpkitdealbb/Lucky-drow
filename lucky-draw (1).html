@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#102a43">
+<title>Lucky Draw — লটারি</title>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+:root{--navy:#102a43;--blue:#1769aa;--bg:#f3f6fa;--card:#fff;--text:#172b4d;--muted:#66788a;--line:#e3eaf1;--green:#12805c;--red:#c0392b;--gold:#f4b942}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif;overflow-x:hidden;-webkit-user-select:none;user-select:none}
+header{background:linear-gradient(135deg,#102a43,#1769aa);color:#fff;padding:22px 17px 26px;border-radius:0 0 24px 24px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.brand{font-size:21px;font-weight:800;cursor:pointer}.sub{font-size:13px;opacity:.8;margin-top:4px}
+button,input,select{font:inherit}button{border:0;border-radius:12px;padding:12px 15px;font-weight:700;cursor:pointer;transition:transform .1s}button:active{transform:scale(.97)}
+.wrap{max-width:650px;margin:-10px auto 35px;padding:0 14px}.card{background:var(--card);border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 5px 20px #102a4310}
+h2{font-size:18px;margin:0 0 14px}.hint{font-size:13px;color:var(--muted);line-height:1.6}
+label{display:block;font-size:14px;font-weight:700;margin:12px 0 6px}label small{font-weight:600;font-size:12px;margin-left:4px}label small.req{color:var(--red)}label small.opt{color:var(--muted)}
+input,select{width:100%;padding:13px;border:1px solid var(--line);border-radius:11px;background:#fbfcfe;outline:none;-webkit-user-select:text;user-select:text;color:var(--text)}input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1769aa18}
+.primary{background:var(--blue);color:#fff;width:100%;margin-top:15px}.secondary{background:#eaf2f9;color:var(--blue)}.danger{background:#fff0ee;color:var(--red)}.success{background:#e9f7f1;color:var(--green)}
+.stats{display:grid;grid-template-columns:1fr;gap:10px}.stat{background:#f5f8fb;border-radius:13px;padding:13px;text-align:center}.stat strong{display:block;font-size:26px;color:var(--blue)}.stat span{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:9px;flex-wrap:wrap}.row button{flex:1}.badge{display:inline-block;padding:5px 9px;border-radius:30px;font-size:12px;font-weight:700}.open{background:#e6f7ef;color:#12805c}.locked{background:#fff0ee;color:#c0392b}
+.list{margin-top:12px}.person{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}.person:last-child{border:0}.num{font-weight:800;color:var(--blue);font-size:18px;min-width:52px;text-align:right}
+.winner{background:linear-gradient(135deg,#fff8e7,#fff);border:1px solid #f3d58c;border-radius:14px;padding:15px;margin:10px 0;animation:popIn .4s ease}.winner b{font-size:20px;color:#986400}
+.hidden{display:none!important}.adminPanel{border:2px solid #d8e8f7}.foot{text-align:center;color:#8291a1;font-size:12px;padding:14px}
+.modal{position:fixed;inset:0;background:#071827cc;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}.modalbox{background:#fff;border-radius:18px;padding:20px;width:100%;max-width:390px}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+.modeBox{background:#f5f8fb;border:1px solid var(--line);border-radius:13px;padding:13px;margin-top:4px}
+
+.drawBoxInline{background:linear-gradient(145deg,#0d2137,#183a5e);color:#fff;border-radius:20px;padding:24px 16px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.3);border:2px solid #2d5a88;margin-bottom:18px;position:relative;overflow:hidden}
+.slotWindow{background:#071320;border:3px solid var(--gold);border-radius:15px;padding:16px 10px;margin:12px 0;box-shadow:inset 0 0 20px rgba(0,0,0,.8), 0 0 15px rgba(244,185,66,.2);position:relative}
+.slotNumber{font-size:52px;font-weight:900;letter-spacing:6px;color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 0 15px rgba(255,255,255,.5);line-height:1.1;transition:transform .15s, color .2s}
+.slotNumber.rolling{color:#7cc4fa;filter:blur(0.5px)}
+.slotNumber.won{color:var(--gold);transform:scale(1.1);text-shadow:0 0 22px rgba(244,185,66,.9);animation:pulseWin .6s ease infinite alternate}
+.slotName{font-size:20px;font-weight:800;min-height:30px;margin-top:6px;color:#e2e8f0}
+.slotName.won{color:#4ade80;font-size:23px}
+#confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:20}
+
+@keyframes popIn{0%{opacity:0;transform:translateY(10px) scale(.96)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes pulseWin{from{transform:scale(1.06)}to{transform:scale(1.12)}}
+</style>
+</head>
+<body>
+<canvas id="confettiCanvas"></canvas>
+
+<header>
+ <div class="top">
+  <div>
+   <div class="brand" id="secretAdminTrigger">🎟️ Lucky Draw</div>
+   <div class="sub" id="headerSub">আপনার তথ্য এন্ট্রি দিন</div>
+  </div>
+  <span id="status" class="badge open">এন্ট্রি খোলা</span>
+ </div>
+</header>
+
+<main class="wrap">
+ <!-- মোড ১: ইউজার এন্ট্রি স্ক্রিন -->
+ <div id="entryScreen">
+  <section class="card">
+   <h2 style="margin:0 0 6px">অংশগ্রহণ করুন</h2>
+   <p class="hint" id="entryHint"></p>
+   <div id="nameField">
+    <label for="participantName" id="nameLabel">আপনার নাম</label>
+    <input id="participantName" maxlength="60" placeholder="নাম লিখুন" autocomplete="off">
+   </div>
+   <div id="numberField">
+    <label for="participantNumber" id="numberLabel">আপনার নম্বর (১–৪ ডিজিট)</label>
+    <input id="participantNumber" inputmode="numeric" maxlength="4" placeholder="যেমন: 7 বা 1234" autocomplete="off">
+   </div>
+   <button class="primary" id="submitEntry">অংশগ্রহণ নিশ্চিত করুন</button>
+  </section>
+
+  <section class="card">
+   <div class="stats">
+    <div class="stat">
+     <strong id="participantCount">0</strong>
+     <span>মোট অংশগ্রহণকারী যুক্ত হয়েছেন</span>
+    </div>
+   </div>
+  </section>
+ </div>
+
+ <!-- মোড ২: লটারি ড্র স্ক্রিন -->
+ <div id="lotteryScreen" class="hidden">
+  <section class="card">
+   <div class="drawBoxInline">
+    <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:8px;" id="drawStageTitle">🎰 লটারি ড্র টার্মিনাল</div>
+    <div class="slotWindow">
+     <div class="slotNumber" id="slotNumber">0000</div>
+     <div class="slotName" id="slotName">ড্র শুরু করার জন্য প্রস্তুত</div>
+    </div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:12px;" id="lotteryStatusText">বাটনে ক্লিক করে পরবর্তী বিজয়ী ড্র করুন</div>
+    <button class="primary" id="startLotteryBtn" style="background:var(--gold);color:#102a43;margin-top:0;font-size:16px;padding:14px">🎰 পরবর্তী বিজয়ী ড্র করুন</button>
+   </div>
+  </section>
+
+  <section class="card">
+   <h2>🏆 বিজয়ীদের তালিকা</h2>
+   <div id="winnersList" class="list">
+    <p class="hint">এখনো কোনো বিজয়ী নির্বাচন করা হয়নি।</p>
+   </div>
+  </section>
+ </div>
+
+ <!-- গোপন অ্যাডমিন প্যানেল -->
+ <section class="card adminPanel hidden" id="adminPanel">
+  <div class="row" style="justify-content:space-between;align-items:center">
+   <h2 style="margin:0">অ্যাডমিন নিয়ন্ত্রণ</h2>
+   <button class="secondary" id="logout">বন্ধ করুন</button>
+  </div>
+
+  <div id="adminFullControls">
+   <h2 style="margin-top:14px">এন্ট্রির নিয়ম</h2>
+   <div class="modeBox">
+    <label for="entryMode" style="margin-top:0">অংশগ্রহণের জন্য কী কী দিতে হবে?</label>
+    <select id="entryMode">
+     <option value="both">নাম ও নম্বর — দুটোই বাধ্যতামূলক</option>
+     <option value="name_req">নাম বাধ্যতামূলক, নম্বর ঐচ্ছিক</option>
+     <option value="num_req">নম্বর বাধ্যতামূলক, নাম ঐচ্ছিক</option>
+     <option value="name_only">শুধু নাম</option>
+     <option value="number_only">শুধু নম্বর</option>
+    </select>
+    <p class="hint" id="entryModeHint" style="margin:10px 0 0"></p>
+   </div>
+
+   <hr>
+   <p class="hint">সবার এন্ট্রি নেওয়া শেষ হলে মোট বিজয়ী সংখ্যা সেট করে লটারি মোড চালু করুন।</p>
+
+   <label for="targetWinners">মোট কতজন বিজয়ী নির্বাচন করবেন?</label>
+   <input id="targetWinners" type="number" min="1" max="999" value="1" inputmode="numeric">
+
+   <button id="lockAndStartMode" class="danger" style="width:100%;margin-top:14px">🔒 এন্ট্রি লক করুন ও লটারি স্ক্রিনে যান</button>
+
+   <hr>
+   <div class="row">
+    <button class="secondary" id="showPeople">অংশগ্রহণকারী দেখুন</button>
+    <button class="secondary" id="hidePeople">তালিকা লুকান</button>
+   </div>
+   <div id="adminPeople" class="list hidden"></div>
+
+   <hr>
+   <h2>ডেটা ব্যাকআপ</h2>
+   <div class="row">
+    <button class="secondary" id="backup">ব্যাকআপ ডাউনলোড</button>
+    <button class="secondary" id="restoreBtn">ব্যাকআপ ফিরিয়ে আনুন</button>
+    <input id="restoreFile" type="file" accept="application/json,.json" class="hidden">
+   </div>
+
+   <hr>
+   <h2>পাসওয়ার্ড পরিবর্তন</h2>
+   <label for="newPassword">নতুন পাসওয়ার্ড</label>
+   <input id="newPassword" type="password" minlength="6" placeholder="কমপক্ষে ৬ অক্ষর">
+   <button class="secondary" id="changePassword" style="margin-top:10px">পাসওয়ার্ড পরিবর্তন</button>
+
+   <hr>
+   <button class="danger" id="resetAll" style="width:100%">সব ডেটা মুছে নতুন লটারি শুরু</button>
+  </div>
+
+  <div id="adminLockedControls" class="hidden">
+   <p class="hint">বর্তমানে লটারি মোড চালু আছে।</p>
+   <button id="unlockEntryBtn" class="success" style="width:100%;margin-bottom:10px">🔓 পুনরায় এন্ট্রি মোডে ফিরে যান</button>
+   <button id="resetAllLocked" class="danger" style="width:100%">সব ডেটা মুছে নতুন লটারি শুরু</button>
+  </div>
+ </section>
+</main>
+
+<!-- পাসওয়ার্ড মডাল -->
+<div class="modal hidden" id="passwordModal">
+ <div class="modalbox">
+  <h2 id="modalTitle">অ্যাডমিন প্রবেশ</h2>
+  <p id="modalText" class="hint">অ্যাডমিন পাসওয়ার্ড দিন।</p>
+  <label for="adminPassword">পাসওয়ার্ড</label>
+  <input id="adminPassword" type="password" autocomplete="current-password">
+  <div class="row" style="margin-top:14px">
+   <button class="secondary" id="cancelModal">বাতিল</button>
+   <button class="primary" id="confirmPassword" style="margin-top:0">চালিয়ে যান</button>
+  </div>
+  <div id="passwordError" class="hint" style="color:#c0392b;margin-top:9px"></div>
+ </div>
+</div>
+
+<script>
+const KEY='lucky_draw_local_v4';
+const $=id=>document.getElementById(id);
+let data, adminUnlocked=false, revealPeople=false, setupMode=false, isDrawing=false;
+
+// --- এন্ট্রি মোড কনফিগ ---
+// req = বাধ্যতামূলক, opt = ঐচ্ছিক, off = ফিল্ড দেখাবে না
+const MODES={
+ both:{name:'req',number:'req',hint:'দুটো তথ্যই দিতে হবে — নাম এবং নম্বর।'},
+ name_req:{name:'req',number:'opt',hint:'নাম দিতে হবে। নম্বর দেওয়া ঐচ্ছিক (না দিলেও চলবে)।'},
+ num_req:{name:'opt',number:'req',hint:'নম্বর দিতে হবে। নাম দেওয়া ঐচ্ছিক (না দিলেও চলবে)।'},
+ name_only:{name:'req',number:'off',hint:'শুধু নাম দিতে হবে। একই নাম দুইবার নেওয়া হবে না।'},
+ number_only:{name:'off',number:'req',hint:'শুধু নম্বর দিতে হবে। একই নম্বর দুইবার নেওয়া হবে না।'}
+};
+const cfg=()=>MODES[data.entryMode]||MODES.both;
+
+// --- সাউন্ড ইঞ্জিন ---
+let audioCtx=null;
+function initAudio(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume()}
+
+function playTickSound(progress){
+ try{
+  initAudio();
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+  osc.type='triangle';
+  osc.frequency.setValueAtTime(320 + progress * 480, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.055);
+  osc.connect(gain);gain.connect(audioCtx.destination);
+  osc.start();osc.stop(audioCtx.currentTime + 0.06);
+ }catch(e){}
+}
+
+function playWinSound(){
+ try{
+  initAudio();
+  const notes=[523.25, 659.25, 783.99, 1046.50];
+  notes.forEach((freq, idx)=>{
+   const osc=audioCtx.createOscillator();
+   const gain=audioCtx.createGain();
+   osc.type='sine';
+   const start=audioCtx.currentTime + idx*0.11;
+   osc.frequency.setValueAtTime(freq, start);
+   gain.gain.setValueAtTime(0.22, start);
+   gain.gain.exponentialRampToValueAtTime(0.001, start + 0.45);
+   osc.connect(gain);gain.connect(audioCtx.destination);
+   osc.start(start);osc.stop(start + 0.46);
+  });
+ }catch(e){}
+}
+
+function launchConfetti(){
+ const canvas=$('confettiCanvas'), ctx=canvas.getContext('2d');
+ canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+ const colors=['#f4b942','#1769aa','#12805c','#e74c3c','#9b59b6','#3498db'];
+ const pieces=Array.from({length:110},()=>({
+  x:Math.random()*canvas.width,
+  y:Math.random()*canvas.height - canvas.height,
+  w:Math.random()*9+5, h:Math.random()*6+4,
+  color:colors[Math.floor(Math.random()*colors.length)],
+  vy:Math.random()*3.5+2.5, vx:(Math.random()-0.5)*3,
+  rot:Math.random()*360, vrot:(Math.random()-0.5)*8
+ }));
+ let frame=0;
+ function update(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  pieces.forEach(p=>{
+   p.y+=p.vy; p.x+=p.vx; p.rot+=p.vrot;
+   ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+   ctx.fillStyle=p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+   ctx.restore();
+  });
+  frame++;
+  if(frame<160)requestAnimationFrame(update);
+  else ctx.clearRect(0,0,canvas.width,canvas.height);
+ }
+ update();
+}
+
+const newId=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const initial=()=>({passwordHash:null,locked:false,targetWinners:1,entryMode:'both',participants:[],winners:[],createdAt:new Date().toISOString()});
+
+// পুরনো ডেটা/ব্যাকআপকে নতুন ফরম্যাটে আনা (id, entryMode যোগ)
+function normalize(x){
+ if(!x.targetWinners) x.targetWinners=1;
+ if(!MODES[x.entryMode]) x.entryMode='both';
+ x.participants.forEach(p=>{
+  if(!p.id) p.id=newId();
+  p.name=p.name||''; p.number=p.number||'';
+ });
+ x.winners.forEach(w=>{
+  w.name=w.name||''; w.number=w.number||'';
+  if(!w.id){
+   const m=x.participants.find(p=>p.number===w.number&&p.name===w.name);
+   w.id=m?m.id:newId();
+  }
+ });
+ return x;
+}
+function load(){
+ try{
+  const x=JSON.parse(localStorage.getItem(KEY));
+  data=x&&Array.isArray(x.participants)&&Array.isArray(x.winners)?normalize(x):initial();
+ }catch(e){data=initial()}
+ save();
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+async function hash(s){const bytes=new TextEncoder().encode(s);const digest=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function reqTag(level){return level==='req'?'<small class="req">(আবশ্যক)</small>':'<small class="opt">(ঐচ্ছিক)</small>'}
+
+function renderEntryForm(){
+ const c=cfg();
+ $('nameField').classList.toggle('hidden', c.name==='off');
+ $('numberField').classList.toggle('hidden', c.number==='off');
+ $('nameLabel').innerHTML='আপনার নাম '+(c.name==='off'?'':reqTag(c.name));
+ $('numberLabel').innerHTML='আপনার নম্বর (১–৪ ডিজিট) '+(c.number==='off'?'':reqTag(c.number));
+ $('entryHint').textContent=c.hint;
+}
+
+function personLabel(p){return p.name?p.name:'(নামহীন)'}
+
+function render(){
+ const isLocked = data.locked;
+ $('status').textContent = isLocked ? 'লটারি মোড' : 'এন্ট্রি খোলা';
+ $('status').className = 'badge ' + (isLocked ? 'locked' : 'open');
+ $('headerSub').textContent = isLocked ? 'ভাগ্যবান বিজয়ী নির্বাচন' : 'আপনার তথ্য এন্ট্রি দিন';
+
+ $('entryScreen').classList.toggle('hidden', isLocked);
+ $('lotteryScreen').classList.toggle('hidden', !isLocked);
+
+ $('participantCount').textContent = data.participants.length;
+ $('targetWinners').value = data.targetWinners;
+ $('entryMode').value = data.entryMode;
+ $('entryModeHint').textContent = cfg().hint;
+ renderEntryForm();
+
+ const finished = data.winners.length >= data.targetWinners;
+ if(finished){
+  $('startLotteryBtn').classList.add('hidden');
+  $('lotteryStatusText').textContent = `🎉 লটারি সম্পন্ন হয়েছে! মোট ${data.winners.length} জন বিজয়ী নির্বাচিত হয়েছেন।`;
+ }else{
+  $('startLotteryBtn').classList.remove('hidden');
+  $('startLotteryBtn').textContent = `🎰 পরবর্তী বিজয়ী ড্র করুন (${data.winners.length}/${data.targetWinners})`;
+  $('lotteryStatusText').textContent = `মোট নির্বাচিত বিজয়ী: ${data.winners.length} / ${data.targetWinners} জন।`;
+ }
+
+ $('winnersList').innerHTML = data.winners.length ? data.winners.map((w,i)=>`<div class="winner"><div class="hint">বিজয়ী #${i+1}</div>${w.name?`<b>${escapeHtml(w.name)}</b>`:''}${w.number?`<div>নম্বর: <strong>${escapeHtml(w.number)}</strong></div>`:''}</div>`).join('') : '<p class="hint">এখনো কোনো বিজয়ী নির্বাচন করা হয়নি।</p>';
+
+ $('adminPanel').classList.toggle('hidden', !adminUnlocked);
+ $('adminFullControls').classList.toggle('hidden', isLocked);
+ $('adminLockedControls').classList.toggle('hidden', !isLocked);
+
+ if(revealPeople && !isLocked) renderPeople();
+ else $('adminPeople').classList.add('hidden');
+}
+
+function renderPeople(){
+ $('adminPeople').classList.remove('hidden');
+ $('adminPeople').innerHTML=data.participants.length?data.participants.map((p,i)=>`<div class="person"><span>${i+1}. ${escapeHtml(personLabel(p))}</span><span class="num">${p.number?escapeHtml(p.number):'—'}</span></div>`).join(''):'<p class="hint">কোনো অংশগ্রহণকারী নেই।</p>';
+}
+
+let tapCount=0, tapTimer=null;
+$('secretAdminTrigger').onclick=()=>{
+ tapCount++;
+ clearTimeout(tapTimer);
+ tapTimer=setTimeout(()=>{tapCount=0}, 1000);
+ if(tapCount>=3){
+  tapCount=0;
+  if(adminUnlocked){$('adminPanel').scrollIntoView({behavior:'smooth'});return}
+  openModal();
+ }
+};
+
+function openModal(){
+ setupMode=!data.passwordHash;
+ $('modalTitle').textContent=setupMode?'প্রথমবার পাসওয়ার্ড সেট করুন':'অ্যাডমিন প্রবেশ';
+ $('modalText').textContent=setupMode?'অ্যাডমিন পাসওয়ার্ড তৈরি করুন (কমপক্ষে ৬ অক্ষর)।':'অ্যাডমিন পাসওয়ার্ড দিন।';
+ $('adminPassword').value='';
+ $('passwordError').textContent='';
+ $('passwordModal').classList.remove('hidden');
+ $('adminPassword').focus();
+}
+$('cancelModal').onclick=()=>$('passwordModal').classList.add('hidden');
+
+$('confirmPassword').onclick=async()=>{
+ const p=$('adminPassword').value;
+ if(setupMode){
+  if(p.length<6){$('passwordError').textContent='কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন।';return}
+  data.passwordHash=await hash(p);save();adminUnlocked=true;$('passwordModal').classList.add('hidden');render();$('adminPanel').scrollIntoView({behavior:'smooth'});return;
+ }
+ if(await hash(p)===data.passwordHash){
+  adminUnlocked=true;$('passwordModal').classList.add('hidden');render();$('adminPanel').scrollIntoView({behavior:'smooth'});
+ }else{
+  $('passwordError').textContent='পাসওয়ার্ড সঠিক নয়।';
+ }
+};
+$('adminPassword').addEventListener('keydown',e=>{if(e.key==='Enter')$('confirmPassword').click()});
+
+// অ্যাডমিন: এন্ট্রি মোড পরিবর্তন
+$('entryMode').onchange=e=>{
+ data.entryMode=e.target.value;
+ save();
+ render();
+ Swal.fire({icon:'success',title:'এন্ট্রির নিয়ম আপডেট হয়েছে',text:cfg().hint,timer:2200,showConfirmButton:false});
+};
+
+$('submitEntry').onclick=()=>{
+ if(data.locked)return;
+ const c=cfg();
+ const name=c.name==='off'?'':$('participantName').value.trim();
+ const number=c.number==='off'?'':$('participantNumber').value.trim();
+
+ if(c.name==='req' && !name){Swal.fire({icon:'warning',title:'নাম দিন',text:'দয়া করে আপনার নাম লিখুন।',confirmButtonColor:'#1769aa'});return}
+ if(c.number==='req' && !number){Swal.fire({icon:'warning',title:'নম্বর দিন',text:'১ থেকে ৪ ডিজিটের একটি নম্বর লিখুন।',confirmButtonColor:'#1769aa'});return}
+ if(number && !/^\d{1,4}$/.test(number)){Swal.fire({icon:'warning',title:'ভুল নম্বর',text:'১ থেকে ৪ ডিজিটের শুধু সংখ্যা দিন।',confirmButtonColor:'#1769aa'});return}
+ if(!name && !number){Swal.fire({icon:'warning',title:'তথ্য দিন',text:'কমপক্ষে একটি তথ্য দিতে হবে।',confirmButtonColor:'#1769aa'});return}
+
+ // ডুপ্লিকেট চেক
+ if(number && data.participants.some(p=>p.number===number)){Swal.fire({icon:'error',title:'নম্বরটি আগে থেকেই আছে',text:'এই নম্বরটি ইতিমধ্যে নেওয়া হয়েছে। অন্য নম্বর দিন।',confirmButtonColor:'#1769aa'});return}
+ if(name && !number && data.participants.some(p=>!p.number && p.name.toLowerCase()===name.toLowerCase())){Swal.fire({icon:'error',title:'নামটি আগে থেকেই আছে',text:'এই নামে ইতিমধ্যে এন্ট্রি দেওয়া হয়েছে।',confirmButtonColor:'#1769aa'});return}
+
+ data.participants.push({id:newId(),name,number,time:new Date().toISOString()});
+ save();
+ $('participantName').value='';$('participantNumber').value='';
+ let msg='আপনার এন্ট্রি যুক্ত হয়েছে।';
+ if(name&&number) msg=`ধন্যবাদ ${name}, আপনার নম্বর (${number}) যুক্ত হয়েছে।`;
+ else if(name) msg=`ধন্যবাদ ${name}, আপনার নাম যুক্ত হয়েছে।`;
+ else msg=`আপনার নম্বর (${number}) যুক্ত হয়েছে।`;
+ Swal.fire({icon:'success',title:'এন্ট্রি সফল!',text:msg,timer:1800,showConfirmButton:false});
+ render();
+};
+$('participantNumber').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,4)});
+
+$('logout').onclick=()=>{adminUnlocked=false;revealPeople=false;render();window.scrollTo({top:0,behavior:'smooth'})};
+
+$('lockAndStartMode').onclick=()=>{
+ const target = Number($('targetWinners').value);
+ if(!Number.isInteger(target) || target < 1){
+  Swal.fire({icon:'warning',title:'সঠিক সংখ্যা দিন',text:'কমপক্ষে ১ জন বিজয়ী নির্ধারণ করুন।',confirmButtonColor:'#1769aa'});
+  return;
+ }
+ if(data.participants.length < target){
+  Swal.fire({icon:'error',title:'অংশগ্রহণকারী কম!',text:`আপনি ${target} জন বিজয়ী চাচ্ছেন, কিন্তু এন্ট্রি দিয়েছেন মাত্র ${data.participants.length} জন!`,confirmButtonColor:'#c0392b'});
+  return;
+ }
+ data.targetWinners = target;
+ data.locked = true;
+ adminUnlocked = false;
+ revealPeople = false;
+ save();
+ render();
+ window.scrollTo({top:0,behavior:'smooth'});
+ Swal.fire({icon:'success',title:'লটারি মোড চালু!',text:'এন্ট্রি বন্ধ করা হয়েছে। এখন স্ক্রিনের বক্স থেকে বিজয়ী ড্র করুন।',timer:1800,showConfirmButton:false});
+};
+
+$('unlockEntryBtn').onclick=()=>{
+ data.locked = false;
+ save();
+ render();
+ Swal.fire({icon:'info',title:'এন্ট্রি খোলা হয়েছে',timer:1400,showConfirmButton:false});
+};
+
+function secureIndex(max){if(max<=0)throw Error('No entries');const a=new Uint32Array(1);const limit=Math.floor(0x100000000/max)*max;let x;do{crypto.getRandomValues(a);x=a[0]}while(x>=limit);return x%max}
+
+// ড্র অ্যানিমেশন
+$('startLotteryBtn').onclick=()=>{
+ if(isDrawing) return;
+ if(data.winners.length >= data.targetWinners){
+  Swal.fire({icon:'info',title:'সমাপ্ত',text:'সকল বিজয়ী ইতিমধ্যে নির্বাচিত হয়ে গেছেন।',confirmButtonColor:'#1769aa'});
+  return;
+ }
+
+ const pool = data.participants.filter(p=>!data.winners.some(w=>w.id===p.id));
+ if(!pool.length){
+  Swal.fire({icon:'info',title:'শেষ',text:'আর কোনো অংশগ্রহণকারী নেই।',confirmButtonColor:'#1769aa'});
+  return;
+ }
+
+ isDrawing=true;
+ initAudio();
+ $('startLotteryBtn').disabled = true;
+
+ const winnerIdx = secureIndex(pool.length);
+ const chosen = pool[winnerIdx];
+ const slotNum = $('slotNumber'), slotName = $('slotName'), stageTitle = $('drawStageTitle'), prog = $('lotteryStatusText');
+ const showNum = p => p.number ? p.number : '🎟️';
+ const showName = p => p.name ? p.name : '';
+
+ slotNum.className = 'slotNumber rolling';
+ slotName.className = 'slotName';
+ stageTitle.textContent = `🎰 বিজয়ী #${data.winners.length + 1} নির্বাচন চলছে...`;
+ prog.textContent = 'স্ক্রল হচ্ছে... দম ধরে রাখুন!';
+
+ const totalTicks = 36;
+ let tick = 0;
+
+ function step(){
+  tick++;
+  const progress = tick / totalTicks;
+  if(tick < totalTicks){
+   const rnd = pool[Math.floor(Math.random() * pool.length)];
+   slotNum.textContent = showNum(rnd);
+   slotName.textContent = showName(rnd);
+   playTickSound(progress);
+   const delay = 45 + Math.pow(progress, 3) * 340;
+   setTimeout(step, delay);
+  }else{
+   slotNum.textContent = showNum(chosen);
+   slotName.textContent = chosen.name ? '🎉 ' + chosen.name : '🎉';
+   slotNum.className = 'slotNumber won';
+   slotName.className = 'slotName won';
+   stageTitle.textContent = `🏆 বিজয়ী #${data.winners.length + 1} নির্বাচিত!`;
+   prog.textContent = 'অভিনন্দন!';
+   playWinSound();
+   launchConfetti();
+
+   data.winners.push({...chosen, time: new Date().toISOString()});
+   save();
+   render();
+
+   isDrawing = false;
+   $('startLotteryBtn').disabled = false;
+  }
+ }
+ step();
+};
+
+$('showPeople').onclick=()=>{revealPeople=true;renderPeople()};
+$('hidePeople').onclick=()=>{$('adminPeople').classList.add('hidden');revealPeople=false};
+
+$('backup').onclick=()=>{
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='lucky-draw-backup.json';a.click();URL.revokeObjectURL(a.href);
+};
+
+$('restoreBtn').onclick=()=>$('restoreFile').click();
+$('restoreFile').onchange=async e=>{
+ const f=e.target.files[0];if(!f)return;
+ try{
+  const x=JSON.parse(await f.text());
+  if(!x||!Array.isArray(x.participants)||!Array.isArray(x.winners)||typeof x.locked!=='boolean'||!x.passwordHash)throw Error();
+  Swal.fire({
+   title: 'ব্যাকআপ ফিরিয়ে আনবেন?',
+   text: "বর্তমান ডেটা মুছে ব্যাকআপ ফাইল লোড করা হবে।",
+   icon: 'warning',
+   showCancelButton: true,
+   confirmButtonColor: '#1769aa',
+   cancelButtonColor: '#c0392b',
+   confirmButtonText: 'হ্যাঁ, ফিরিয়ে আনুন',
+   cancelButtonText: 'বাতিল'
+  }).then((result)=>{
+   if(result.isConfirmed){
+    data=normalize(x);save();adminUnlocked=false;revealPeople=false;render();
+    Swal.fire({icon:'success',title:'সফল!',text:'ব্যাকআপ সফলভাবে ফিরিয়ে আনা হয়েছে।',timer:1800,showConfirmButton:false});
+   }
+  });
+ }catch(err){
+  Swal.fire({icon:'error',title:'ত্রুটি',text:'ব্যাকআপ ফাইলটি সঠিক নয়।',confirmButtonColor:'#c0392b'});
+ }
+ e.target.value='';
+};
+
+$('changePassword').onclick=async()=>{
+ const p=$('newPassword').value;
+ if(p.length<6){
+  Swal.fire({icon:'warning',title:'ছোট পাসওয়ার্ড',text:'নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।',confirmButtonColor:'#1769aa'});
+  return;
+ }
+ Swal.fire({
+  title: 'পাসওয়ার্ড পরিবর্তন?',
+  text: "আপনি কি নিশ্চিতভাবে অ্যাডমিন পাসওয়ার্ড পরিবর্তন করতে চান?",
+  icon: 'question',
+  showCancelButton: true,
+  confirmButtonColor: '#1769aa',
+  cancelButtonColor: '#c0392b',
+  confirmButtonText: 'হ্যাঁ',
+  cancelButtonText: 'না'
+ }).then(async(result)=>{
+  if(result.isConfirmed){
+   data.passwordHash=await hash(p);save();$('newPassword').value='';
+   Swal.fire({icon:'success',title:'পরিবর্তিত!',text:'পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে।',timer:1800,showConfirmButton:false});
+  }
+ });
+};
+
+function handleReset(){
+ Swal.fire({
+  title: 'সতর্কতা!',
+  text: "সব অংশগ্রহণকারী, বিজয়ী ও সেটিংস চিরতরে মুছে যাবে। আপনি কি নিশ্চিত?",
+  icon: 'warning',
+  showCancelButton: true,
+  confirmButtonColor: '#c0392b',
+  cancelButtonColor: '#66788a',
+  confirmButtonText: 'হ্যাঁ, সব মুছুন',
+  cancelButtonText: 'বাতিল'
+ }).then((result)=>{
+  if(result.isConfirmed){
+   localStorage.removeItem(KEY);
+   data=initial();adminUnlocked=false;revealPeople=false;render();
+   window.scrollTo({top:0,behavior:'smooth'});
+   Swal.fire({icon:'success',title:'রিসেট সম্পন্ন',text:'নতুন লটারি তৈরি হয়েছে। টাইটেলে ৩ বার ট্যাপ করে পাসওয়ার্ড সেট করুন।',confirmButtonColor:'#1769aa'});
+  }
+ });
+}
+$('resetAll').onclick=handleReset;
+$('resetAllLocked').onclick=handleReset;
+
+load();render();
+</script>
+</body>
+</html>
